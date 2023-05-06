@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["es2020", "ES2021.String"],
+    "module": "ESNext",
+    "moduleResolution": "node16",
+    "isolatedModules": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "outDir": "dist",
+    "strict": true
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "files": true,
+    "esm": true,
+    "experimentalResolver": true
+  },
+  "tsc": {
+    "module": "es2020"
+  }
+}
