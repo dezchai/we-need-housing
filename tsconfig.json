@@ -6,7 +6,7 @@
     "moduleResolution": "node16",
     "isolatedModules": true,
     "noPropertyAccessFromIndexSignature": true,
-    "outDir": "dist",
+    "outDir": "./dist",
     "strict": true
   },
   "ts-node": {

@@ -1,13 +1,13 @@
-import * as craigslist from "./sites/craigslist.js";
-import * as vansky from "./sites/vansky.js";
-import * as wesbrook from "./sites/wesbrook.js";
-import * as facebook from "./sites/facebook.js";
+import craigslistMonitor from "./sites/craigslist.js";
+import vanskyMonitor from "./sites/vansky.js";
+import wesbrookMonitor from "./sites/wesbrook.js";
+import facebookMonitor from "./sites/facebook.js";
 // import { setTimeout as sleep } from "timers/promises";
 
-(async () => {
-  vansky.monitor("ubc 3房");
-  wesbrook.monitor({ bedrooms: "3" });
-  craigslist.monitor(
+const main = async () => {
+  vanskyMonitor("ubc 3房");
+  wesbrookMonitor({ bedrooms: "3" });
+  craigslistMonitor(
     "apa",
     "",
     {
@@ -21,5 +21,7 @@ import * as facebook from "./sites/facebook.js";
       max_bedrooms: "3",
     }
   );
-  facebook.monitor();
-})();
+  facebookMonitor();
+};
+
+main()

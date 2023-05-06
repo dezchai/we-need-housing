@@ -6,6 +6,7 @@ import Log from "dezutil";
 import { setTimeout as sleep } from "timers/promises";
 import { Webhook, MessageBuilder } from "webhook-discord";
 import { SLEEP_TIME, ERROR_TIME, WEBHOOK_URL } from "../config.js";
+import { readPrevious, writePrevious } from "../utils.js";
 
 const { log, elog, slog } = Log.create("Craigslist");
 
@@ -55,18 +56,19 @@ interface PostingAttribute {
   label: string;
   value: string;
 }
+
 const eclAppName: string = "craigslist mobile app";
 const eclDoorKey: string = "let me use the dev code to log in"; // lmao
 const eclUserAgent: string = "CLApp/1.14.2/iOS unknown";
 const eclAppVersion: string = "1.14.2-20210412-152100-94d307e1";
 const eclLogID: string = "2a1c34f";
 
-function randomString(length: number): string {
+const randomString = (length: number): string => {
   return crypto
     .randomBytes(Math.ceil(length / 2))
     .toString("hex")
     .slice(0, length);
-}
+};
 
 const getCookie = async (): Promise<string> => {
   let cookie: string | undefined;
@@ -79,18 +81,20 @@ const getCookie = async (): Promise<string> => {
     .catch((e) => {
       elog("Failed to get cookie", e);
     });
+
   if (!response) {
     elog(`Waiting ${ERROR_TIME}ms before retrying`);
     await sleep(ERROR_TIME);
     return getCookie();
   }
+
   cookie = response.headers?.["set-cookie"]?.[0];
-  return cookie || getCookie();
+  return cookie || (await getCookie());
 };
 
-const getBearer = async (areaId: number): Promise<String> => {
+const getBearer = async (areaId: number): Promise<string> => {
   let bearer: string | undefined;
-  let cookie = await getCookie();
+  const cookie = await getCookie();
 
   const response = await axios({
     url: "https://rapi.craigslist.org/v7/access-token",
@@ -130,13 +134,13 @@ const getBearer = async (areaId: number): Promise<String> => {
  * @returns {Promise<Posting>} A promise that resolves to a Posting object.
  * @throws Will throw an error if the response status is not 200 or if the response data is invalid.
  */
-export const getPosting = async (result: Result): Promise<Posting> => {
+const getPosting = async (result: Result): Promise<Posting> => {
   const id = result.postingId;
   const categoryAbbr = result.categoryAbbr;
   const location = result.location;
 
-  let cookie = await getCookie();
-  let bearer = await getBearer(location.areaId);
+  const cookie = await getCookie();
+  const bearer = await getBearer(location.areaId);
 
   const response = await axios<{ data: { items: Posting[] } }>({
     url:
@@ -225,15 +229,16 @@ const search = async (
   if (query !== "") {
     queryParams["query"] = query;
   }
-  if (typeof filters !== "undefined") {
+  if (filters) {
     for (const key in filters) {
       queryParams[key] = filters[key];
     }
   }
-  let cookie = await getCookie();
-  let bearer = await getBearer(location.areaId);
 
-  const response = await axios<{ data: { items: Result[] } }>({
+  const cookie = await getCookie();
+  const bearer = await getBearer(location.areaId);
+
+  let response = await axios<{ data: { items: Result[] } }>({
     url: "https://sapi.craigslist.org/v7/postings/" + category + "/search",
     method: "GET",
     params: queryParams,
@@ -269,32 +274,32 @@ const search = async (
   return response.data.data.items;
 };
 
-function inSearchArea(
+const inSearchArea = (
   lat1: number,
   long1: number,
   lat2: number,
   long2: number,
-  radius: number
-): boolean {
-  let R = 6371e3; // Earth's mean radius in meters
-  let φ1 = lat1 * (Math.PI / 180);
-  let φ2 = lat2 * (Math.PI / 180);
-  let Δφ = (lat2 - lat1) * (Math.PI / 180);
-  let Δλ = (long2 - long1) * (Math.PI / 180);
-  radius = radius * 1000; // km to m
-  let a =
+  radiusKM: number
+): boolean => {
+  const R = 6371e3; // Earth's mean radius in meters
+  const φ1 = lat1 * (Math.PI / 180);
+  const φ2 = lat2 * (Math.PI / 180);
+  const Δφ = (lat2 - lat1) * (Math.PI / 180);
+  const Δλ = (long2 - long1) * (Math.PI / 180);
+  const radiusM = radiusKM * 1000; // km to m
+  const a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
     Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  let distance = R * c;
+  const distance = R * c;
 
-  return distance <= radius;
-}
+  return distance <= radiusM;
+};
 
 const sendWebhook = async (post: Posting) => {
-  const Hook = new Webhook(WEBHOOK_URL);
-  let image = post.images[0]
+  const hook = new Webhook(WEBHOOK_URL);
+  const image = post.images[0]
     ? "https://images.craigslist.org/" +
       post.images[0].split(":")[1] +
       "_600x450.jpg"
@@ -310,10 +315,10 @@ const sendWebhook = async (post: Posting) => {
     .addField("Description", post.body.slice(0, 1023))
     .addField("Price", post.price.toString())
     .setTime();
-  Hook.send(embed);
+  hook.send(embed);
 };
 
-export const monitor = async (
+const monitor = async (
   category: string,
   query: string,
   location: LocationParams,
@@ -323,11 +328,10 @@ export const monitor = async (
 ) => {
   while (true) {
     const results = await search(category, query, location, filters);
-    let seen = JSON.parse(fs.readFileSync("./previous.json", "utf-8"));
+    const seen: number[] = readPrevious("craigslist");
 
-    let unseen = results.filter(
-      (result) => !seen["craigslist"].includes(result.postingId)
-    );
+    const unseen = results.filter((x) => !seen.includes(x.postingId));
+
     for (const result of unseen) {
       const post = await getPosting(result);
       // if (
@@ -345,10 +349,11 @@ export const monitor = async (
 
       slog("New Listing", post.title);
       await sendWebhook(post);
-      seen["craigslist"].push(post.postingId);
+      seen.push(post.postingId);
       sleep(1000);
     }
-    fs.writeFileSync("./previous.json", JSON.stringify(seen, null, 4));
+
+    writePrevious('craigslist', seen)
 
     log(
       `Found ${results.length} results, ${unseen.length} were new. Waiting ${SLEEP_TIME}ms`
@@ -371,3 +376,5 @@ export const monitor = async (
 //     max_bedrooms: "3",
 //   }
 // );
+
+export default monitor;

@@ -5,6 +5,7 @@ import { Webhook, MessageBuilder } from "webhook-discord";
 import { setTimeout as sleep } from "timers/promises";
 import Log from "dezutil";
 import { SLEEP_TIME, ERROR_TIME, WEBHOOK_URL } from "../config.js";
+import { writePrevious, readPrevious } from "../utils.js";
 
 const { log, elog, slog } = Log.create("Vansky");
 
@@ -114,9 +115,9 @@ const search = async (query: string): Promise<Array<string>> => {
   }
   const $ = cheerio.load(response);
 
-  let output: Array<string> = []; // array of links
+  const output: Array<string> = []; // array of links
   $("a.adsTitleFont").map((i, el) => {
-    let href = $(el).attr("href");
+    const href = $(el).attr("href");
     if (href) {
       output.push(href);
     }
@@ -125,11 +126,11 @@ const search = async (query: string): Promise<Array<string>> => {
 };
 
 const sendWebhook = async (post: Posting) => {
-  const Hook = new Webhook(WEBHOOK_URL);
+  const hook = new Webhook(WEBHOOK_URL);
   // make each description of room on a sepearte line.
   // e.g. "1 Bedroom 1 Bathroom" -> "1 Bedroom\n1 Bathroom"
   // every second space is replaced with \n
-  let specs = post.specs.replaceAll(/(\S+\s*\s*\S+)/g, "\n$&\t");
+  const specs = post.specs.replaceAll(/(\S+\s*\s*\S+)/g, "\n$&\t");
   const embed = new MessageBuilder()
     .setName("Vansky")
     .setTitle(post.title)
@@ -142,22 +143,24 @@ const sendWebhook = async (post: Posting) => {
     .addField("Move In Date", post.moveInDate)
     .addField("Rent", post.rent)
     .setTime();
-  Hook.send(embed);
+  hook.send(embed);
 };
-export const monitor = async (query: string) => {
+const monitor = async (query: string) => {
   while (true) {
-    let results = await search(query);
-    let seen = JSON.parse(fs.readFileSync("./previous.json", "utf-8"));
+    const results = await search(query);
+    const seen: string[] = readPrevious("vansky");
 
-    let unseen = results.filter((x) => !seen["vansky"].includes(x));
+    const unseen = results.filter((x) => !seen.includes(x));
+
     for (const x of unseen) {
-      let post = await getPosting(x);
+      const post = await getPosting(x);
       slog("New Post", post.title);
       await sendWebhook(post);
       await sleep(1000);
-      seen.vansky.push(x);
+      seen.push(x);
     }
-    fs.writeFileSync("./previous.json", JSON.stringify(seen, null, 4));
+
+    writePrevious("vansky", seen);
 
     log(
       `Found ${results.length} results, ${unseen.length} were new. Waiting ${SLEEP_TIME}ms`
@@ -165,3 +168,5 @@ export const monitor = async (query: string) => {
     await sleep(SLEEP_TIME);
   }
 };
+
+export default monitor;

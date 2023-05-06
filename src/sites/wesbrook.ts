@@ -5,6 +5,7 @@ import Log from "dezutil";
 import { setTimeout as sleep } from "timers/promises";
 import { Webhook, MessageBuilder } from "webhook-discord";
 import { SLEEP_TIME, ERROR_TIME, WEBHOOK_URL } from "../config.js";
+import { writePrevious, readPrevious } from "../utils.js";
 
 const { log, elog, slog } = Log.create("Wesbrook");
 
@@ -67,37 +68,37 @@ const search = async (
     return await search(filters);
   }
   const $ = cheerio.load(response);
-  let results = $(".result_row").toArray();
+  const results = $(".result_row").toArray();
   if (results.length == 0) {
     // console.log("No Results");
     return [];
   }
 
-  let output: Array<WesbrookAvailable> = [];
+  const output: Array<WesbrookAvailable> = [];
 
   for (const result of results) {
-    let img =
+    const img =
       "https://www.wesbrookproperties.com" +
       $(result).find(".result_pic").find("img").attr("src");
-    let roomSpec = $(result).find(".header1").text();
-    let buildingName = $(result).find(".header2").text();
-    let neighbourhood = $(result).find(".header3").text();
+    const roomSpec = $(result).find(".header1").text();
+    const buildingName = $(result).find(".header2").text();
+    const neighbourhood = $(result).find(".header3").text();
 
-    let stats = $(result).find("span");
+    const stats = $(result).find("span");
 
-    let suite = $(stats[0]).text();
-    let petFriendly = $(stats[1]).text(); // we dont have pets
-    let rent = $(stats[2]).text();
-    let moveInDate = $(stats[3]).text();
+    const suite = $(stats[0]).text();
+    const petFriendly = $(stats[1]).text(); // we dont have pets
+    const rent = $(stats[2]).text();
+    const moveInDate = $(stats[3]).text();
     output.push({
-      roomSpec: roomSpec,
-      buildingName: buildingName,
-      neighbourhood: neighbourhood,
-      suite: suite,
-      petFriendly: petFriendly,
-      rent: rent,
-      moveInDate: moveInDate,
-      img: img,
+      roomSpec,
+      buildingName,
+      neighbourhood,
+      suite,
+      petFriendly,
+      rent,
+      moveInDate,
+      img,
     });
   }
   return output;
@@ -121,25 +122,29 @@ const sendWebhook = async (listing: WesbrookAvailable) => {
   Hook.send(embed);
 };
 
-export const monitor = async (filters?: WesbrookFilters) => {
+const monitor = async (filters?: WesbrookFilters) => {
   while (true) {
     const results = await search(filters);
-    let seen = JSON.parse(fs.readFileSync("./previous.json", "utf-8"));
+    const seen: string[] = readPrevious("wesbrook");
     // each key in unseen is x["suite"]+x["availability"] so the same suite can be unseen
     // more than once.
-    let unseen = results.filter(
-      (x) => !seen["wesbrook"].includes(x["suite"] + x["moveInDate"])
+    const unseen = results.filter(
+      (x) => !seen.includes(x["suite"] + x["moveInDate"])
     );
     for (const listing of unseen) {
       slog("New Listing", listing.suite);
       await sendWebhook(listing);
       await sleep(1000);
-      seen.wesbrook.push(listing["suite"] + listing["moveInDate"]);
+      seen.push(listing["suite"] + listing["moveInDate"]);
     }
-    fs.writeFileSync("./previous.json", JSON.stringify(seen, null, 4));
+
+    writePrevious("wesbrook", seen);
+
     log(
       `Found ${results.length} results, ${unseen.length} were new. Waiting ${SLEEP_TIME}ms`
     );
     await sleep(SLEEP_TIME);
   }
 };
+
+export default monitor;

@@ -4,6 +4,7 @@ import { setTimeout as sleep } from "timers/promises";
 import { Webhook, MessageBuilder } from "webhook-discord";
 import * as fs from "fs";
 import { SLEEP_TIME, ERROR_TIME, WEBHOOK_URL } from "../config.js";
+import { readPrevious, writePrevious } from '../utils.js';
 
 const { log, elog, slog } = Log.create("Facebook");
 
@@ -138,13 +139,13 @@ const search = async (): Promise<Array<Result>> => {
 
   // returns an array of listings
   //@ts-ignore
-  let listings: Array<Listing> = format["require"][0][3][1]["__bbox"]["result"][
-    "data"
-  ]["viewer"]["marketplace_feed_stories"]["edges"].map(
+  const listings: Array<Listing> = format["require"][0][3][1]["__bbox"][
+    "result"
+  ]["data"]["viewer"]["marketplace_feed_stories"]["edges"].map(
     (edge: Edge) => edge["node"]["listing"]
   );
 
-  let output: Array<Result> = [];
+  const output: Array<Result> = [];
 
   // parse data
   listings.map((listing: Listing) => {
@@ -172,7 +173,7 @@ const getPosting = async (result: Result): Promise<Posting> => {
     return await getPosting(result);
   }
 
-  let description = response
+  const description = response
     .split(`},"redacted_description":{"text":"`)[1]
     .split(`"},`)[0];
 
@@ -182,7 +183,7 @@ const getPosting = async (result: Result): Promise<Posting> => {
 };
 
 const sendWebhook = async (listing: Posting) => {
-  const Hook = new Webhook(WEBHOOK_URL);
+  const hook = new Webhook(WEBHOOK_URL);
   const embed = new MessageBuilder()
     .setName("Facebook")
     .setTitle(listing.title)
@@ -194,23 +195,24 @@ const sendWebhook = async (listing: Posting) => {
     .addField("Description", listing.description.slice(0, 1023))
     .addField("Rent", listing.price)
     .setTime();
-  Hook.send(embed);
+  hook.send(embed);
 };
 
-export const monitor = async () => {
+const monitor = async () => {
   while (true) {
     const results = await search();
-    let seen = JSON.parse(fs.readFileSync("./previous.json", "utf-8"));
+    const seen: string[] = readPrevious('facebook')
 
-    let unseen = results.filter((x) => !seen["facebook"].includes(x["url"]));
+    const unseen = results.filter((x) => !seen.includes(x["url"]));
     for (const result of unseen) {
-      let post: Posting = await getPosting(result);
+      const post: Posting = await getPosting(result);
       slog("New Listing", post.title);
       await sendWebhook(post);
       await sleep(1000);
-      seen.facebook.push(post.url);
+      seen.push(post.url);
     }
-    fs.writeFileSync("./previous.json", JSON.stringify(seen, null, 4));
+
+    writePrevious('facebook', seen);
 
     log(
       `Found ${results.length} results, ${unseen.length} were new. Waiting ${SLEEP_TIME}ms`
@@ -218,3 +220,5 @@ export const monitor = async () => {
     await sleep(SLEEP_TIME);
   }
 };
+
+export default monitor;
