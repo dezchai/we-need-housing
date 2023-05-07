@@ -2,7 +2,6 @@ import got from "got";
 import Log from "dezutil";
 import { setTimeout as sleep } from "timers/promises";
 import { Webhook, MessageBuilder } from "webhook-discord";
-import * as fs from "fs";
 import { SLEEP_TIME, ERROR_TIME, WEBHOOK_URL } from "../config.js";
 import { readPrevious, writePrevious } from '../utils.js';
 

@@ -4,18 +4,18 @@ export const readPrevious = (key: string) => {
   const prevData = JSON.parse(readFileSync("./previous.json", "utf-8"));
 
   const keyData = prevData[key];
-  
-  if (keyData) return keyData
+
+  if (keyData) return keyData;
 
   writePrevious(key, []);
 
-  return []
-}
+  return [];
+};
 
 export const writePrevious = (key: string, data: any[]) => {
-  const prevData = JSON.parse(readFileSync('./previous.json', 'utf-8'))
+  const prevData = JSON.parse(readFileSync("./previous.json", "utf-8"));
 
-  prevData[key] = data
+  prevData[key] = data;
 
-  writeFileSync('./previous.json', prevData)
-}
+  writeFileSync("./previous.json", JSON.stringify(prevData, null, 4));
+};

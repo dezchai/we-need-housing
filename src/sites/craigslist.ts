@@ -1,7 +1,6 @@
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import * as crypto from "crypto";
-import * as fs from "fs";
 import Log from "dezutil";
 import { setTimeout as sleep } from "timers/promises";
 import { Webhook, MessageBuilder } from "webhook-discord";

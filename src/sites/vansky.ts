@@ -1,6 +1,5 @@
 import got from "got";
 import * as cheerio from "cheerio";
-import * as fs from "fs";
 import { Webhook, MessageBuilder } from "webhook-discord";
 import { setTimeout as sleep } from "timers/promises";
 import Log from "dezutil";
