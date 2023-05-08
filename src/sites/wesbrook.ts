@@ -107,6 +107,7 @@ const sendWebhook = async (listing: WesbrookAvailable) => {
   const Hook = new Webhook(WEBHOOK_URL);
   const embed = new MessageBuilder()
     .setName("Wesbrook")
+    .setText("@everyone")
     .setTitle(listing.buildingName + " - " + listing.suite)
     .setURL("https://www.wesbrookproperties.com/availability/")
     .setDescription("New Wesbrook Listing")

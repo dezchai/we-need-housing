@@ -306,6 +306,7 @@ const sendWebhook = async (post: Posting) => {
   const embed = new MessageBuilder()
     .setName("Wesbrook")
     .setTitle(post.title)
+    .setText("@everyone")
     .setURL(post.url)
     .setDescription("New Craigslist Listing")
     .setFooter("Developed by github/dezchai", "")
@@ -352,7 +353,7 @@ const monitor = async (
       sleep(1000);
     }
 
-    writePrevious('craigslist', seen)
+    writePrevious("craigslist", seen);
 
     log(
       `Found ${results.length} results, ${unseen.length} were new. Waiting ${SLEEP_TIME}ms`

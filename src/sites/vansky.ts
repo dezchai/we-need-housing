@@ -133,6 +133,7 @@ const sendWebhook = async (post: Posting) => {
   const embed = new MessageBuilder()
     .setName("Vansky")
     .setTitle(post.title)
+    .setText("@everyone")
     .setURL(post.url)
     .setDescription("New Vansky Listing")
     .setFooter("Developed by github/dezchai", "")

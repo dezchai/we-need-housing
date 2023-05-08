@@ -186,6 +186,7 @@ const sendWebhook = async (listing: Posting) => {
   const embed = new MessageBuilder()
     .setName("Facebook")
     .setTitle(listing.title)
+    .setText("@everyone")
     .setURL(listing.url)
     .setDescription("New Facebook Listing")
     .setFooter("Developed by github/dezchai", "")
