@@ -2,8 +2,8 @@ import got from "got";
 import Log from "dezutil";
 import { setTimeout as sleep } from "timers/promises";
 import { Webhook, MessageBuilder } from "webhook-discord";
-import { SLEEP_TIME, ERROR_TIME, WEBHOOK_URL } from "../config.js";
-import { readPrevious, writePrevious } from '../utils.js';
+import { SLEEP_TIME, ERROR_TIME, WEBHOOK_URL, FB_COOKIE } from "../config.js";
+import { readPrevious, writePrevious } from "../utils.js";
 
 const { log, elog, slog } = Log.create("Facebook");
 
@@ -97,6 +97,7 @@ const headers = {
   "user-agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
   "viewport-width": "976",
+  cookie: FB_COOKIE,
 };
 const search = async (): Promise<Array<Result>> => {
   const response = await got(
@@ -123,11 +124,12 @@ const search = async (): Promise<Array<Result>> => {
     await sleep(ERROR_TIME);
     return await search();
   }
+  // console.log(response);
   let format = response
     .split("\n")
-    .find((line) => line.includes("formatted_amount"))
-    ?.split("handleWithCustomApplyEach(ScheduledApplyEach,")[1]
-    .split(");});});</script>")[0];
+    .find((line) => line.includes("MarketplaceFeedListingStory"))
+    ?.split(`" data-sjs>`)[1]
+    .split("</script>")[0];
   if (!format) {
     elog("Error Parsing Facebook", response);
     elog(`Waiting ${ERROR_TIME}ms before retrying`);
@@ -137,12 +139,19 @@ const search = async (): Promise<Array<Result>> => {
   format = JSON.parse(format);
 
   // returns an array of listings
+
+  // const listings: Array<Listing> = format["require"][0][3][1]["__bbox"][
+  //   "result"
+  // ]["data"]["viewer"]["marketplace_feed_stories"]["edges"].map(
+  //   (edge: Edge) => edge["node"]["listing"]
+  // );
+
   //@ts-ignore
-  const listings: Array<Listing> = format["require"][0][3][1]["__bbox"][
-    "result"
-  ]["data"]["viewer"]["marketplace_feed_stories"]["edges"].map(
-    (edge: Edge) => edge["node"]["listing"]
-  );
+  const listings: Array<Listing> = format["require"][0][3][0]["__bbox"][
+    "require"
+  ][0][3][1]["__bbox"]["result"]["data"]["viewer"]["marketplace_feed_stories"][
+    "edges"
+  ].map((edge: Edge) => edge["node"]["listing"]);
 
   const output: Array<Result> = [];
 
@@ -201,7 +210,7 @@ const sendWebhook = async (listing: Posting) => {
 const monitor = async () => {
   while (true) {
     const results = await search();
-    const seen: string[] = readPrevious('facebook')
+    const seen: string[] = readPrevious("facebook");
 
     const unseen = results.filter((x) => !seen.includes(x["url"]));
     for (const result of unseen) {
@@ -212,7 +221,7 @@ const monitor = async () => {
       seen.push(post.url);
     }
 
-    writePrevious('facebook', seen);
+    writePrevious("facebook", seen);
 
     log(
       `Found ${results.length} results, ${unseen.length} were new. Waiting ${SLEEP_TIME}ms`
