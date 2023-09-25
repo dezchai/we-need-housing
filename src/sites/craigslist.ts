@@ -273,29 +273,6 @@ const search = async (
   return response.data.data.items;
 };
 
-const inSearchArea = (
-  lat1: number,
-  long1: number,
-  lat2: number,
-  long2: number,
-  radiusKM: number
-): boolean => {
-  const R = 6371e3; // Earth's mean radius in meters
-  const φ1 = lat1 * (Math.PI / 180);
-  const φ2 = lat2 * (Math.PI / 180);
-  const Δφ = (lat2 - lat1) * (Math.PI / 180);
-  const Δλ = (long2 - long1) * (Math.PI / 180);
-  const radiusM = radiusKM * 1000; // km to m
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  const distance = R * c;
-
-  return distance <= radiusM;
-};
-
 const sendWebhook = async (post: Posting) => {
   const hook = new Webhook(WEBHOOK_URL);
   const image = post.images[0]
@@ -334,18 +311,6 @@ const monitor = async (
 
     for (const result of unseen) {
       const post = await getPosting(result);
-      // if (
-      //   !inSearchArea(
-      //     location.latitude,
-      //     location.longitude,
-      //     post.location.lat,
-      //     post.location.lon,
-      //     location.searchDistance
-      //   )
-      // ) {
-      //   log("Not in search area", post.title);
-      //   continue;
-      // }
 
       slog("New Listing", post.title);
       await sendWebhook(post);
@@ -361,20 +326,5 @@ const monitor = async (
     await sleep(SLEEP_TIME);
   }
 };
-
-// monitor(
-//   "apa",
-//   "",
-//   {
-//     areaId: 16,
-//     latitude: 49.2599,
-//     longitude: -123.2388,
-//     searchDistance: 2.4,
-//   },
-//   {
-//     min_bedrooms: "3",
-//     max_bedrooms: "3",
-//   }
-// );
 
 export default monitor;

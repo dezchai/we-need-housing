@@ -24,4 +24,4 @@ const main = async () => {
   facebookMonitor();
 };
 
-main()
+main();

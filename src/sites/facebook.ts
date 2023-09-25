@@ -4,9 +4,11 @@ import { setTimeout as sleep } from "timers/promises";
 import { Webhook, MessageBuilder } from "webhook-discord";
 import { SLEEP_TIME, ERROR_TIME, WEBHOOK_URL, FB_COOKIE } from "../config.js";
 import { readPrevious, writePrevious } from "../utils.js";
+import * as fs from "fs";
 
 const { log, elog, slog } = Log.create("Facebook");
 
+// let SLEEP_TIME = 1000;
 // This is the only module that is hardcoded to fit my needs
 // The GraphQL api is brutal to work with
 // Warning: without cookies this may not work on lower quality IP's
@@ -124,17 +126,16 @@ const search = async (): Promise<Array<Result>> => {
     await sleep(ERROR_TIME);
     return await search();
   }
-  // console.log(response);
   let format = response
     .split("\n")
     .find((line) => line.includes("MarketplaceFeedListingStory"))
     ?.split(`" data-sjs>`)[1]
     .split("</script>")[0];
   if (!format) {
-    elog("Error Parsing Facebook", response);
+    elog("Error Parsing Facebook, or zero listings");
     elog(`Waiting ${ERROR_TIME}ms before retrying`);
     await sleep(ERROR_TIME);
-    return await search();
+    return [];
   }
   format = JSON.parse(format);
 
@@ -146,12 +147,20 @@ const search = async (): Promise<Array<Result>> => {
   //   (edge: Edge) => edge["node"]["listing"]
   // );
 
-  //@ts-ignore
-  const listings: Array<Listing> = format["require"][0][3][0]["__bbox"][
-    "require"
-  ][0][3][1]["__bbox"]["result"]["data"]["viewer"]["marketplace_feed_stories"][
-    "edges"
-  ].map((edge: Edge) => edge["node"]["listing"]);
+  let listings: Array<Listing> = [];
+  try {
+    //@ts-ignore
+    listings = format["require"][0][3][0]["__bbox"]["require"][0][3][1][
+      "__bbox"
+    ]["result"]["data"]["viewer"]["marketplace_feed_stories"]["edges"].map(
+      (edge: Edge) => edge["node"]["listing"]
+    );
+  } catch (e) {
+    // elog(format);
+    elog("Error Parsing Listings");
+    await sleep(ERROR_TIME);
+    return await search();
+  }
 
   const output: Array<Result> = [];
 
@@ -160,7 +169,7 @@ const search = async (): Promise<Array<Result>> => {
     output.push({
       price: listing.listing_price.formatted_amount,
       title: listing.marketplace_listing_title,
-      photo: listing.primary_listing_photo?.image.uri,
+      photo: listing.primary_listing_photo?.image.uri || "",
       url: `https://www.facebook.com/marketplace/item/${listing.id}`,
     });
   });
