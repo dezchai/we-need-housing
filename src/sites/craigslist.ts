@@ -1,3 +1,4 @@
+// Thanks to https://github.com/ecnepsnai/craigslist for the endpoints & headers
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import * as crypto from "crypto";
