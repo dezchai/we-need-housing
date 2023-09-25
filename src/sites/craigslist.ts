@@ -281,7 +281,7 @@ const sendWebhook = async (post: Posting) => {
       "_600x450.jpg"
     : "https://1000logos.net/wp-content/uploads/2020/11/Craigslist-emblem.jpg";
   const embed = new MessageBuilder()
-    .setName("Wesbrook")
+    .setName("Craigslist")
     .setTitle(post.title)
     .setText("@everyone")
     .setURL(post.url)

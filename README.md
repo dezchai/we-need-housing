@@ -26,7 +26,7 @@ npm i
 WEBHOOK_URL="!!!" # https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks
 SLEEP_TIME=10000 # ms
 ERROR_TIME=30000 # ms
-FB_COOKIE='' # optional, but will reduce errors
+FB_COOKIE="" # optional, but will reduce errors
 ```
 ```bash
 npm run start

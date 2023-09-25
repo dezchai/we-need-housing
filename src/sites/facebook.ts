@@ -10,7 +10,7 @@ const { log, elog, slog } = Log.create("Facebook");
 
 // let SLEEP_TIME = 1000;
 // This is the only module that is hardcoded to fit my needs
-// The GraphQL api is brutal to work with
+// because the request can look very different depending on the type of search
 // Warning: without cookies this may not work on lower quality IP's
 
 interface Edge {
@@ -106,13 +106,13 @@ const search = async (): Promise<Array<Result>> => {
     "https://www.facebook.com/marketplace/vancouver/propertyrentals",
     {
       searchParams: {
-        minPrice: "3000",
+        minPrice: "3000", // $
         minBedrooms: "3",
         maxBedrooms: "3",
         exact: "false",
         latitude: "49.262203571682846",
         longitude: "-123.26162338256836",
-        radius: "3",
+        radius: "3", // km
       },
       headers: headers,
     }
