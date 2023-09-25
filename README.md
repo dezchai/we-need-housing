@@ -17,8 +17,8 @@ Since we received push notifications the second a new listing was posted, we cou
 ## Installation and Usage
 Clone the project, then install the required libraries. Setup a `.env` file as shown, and configure `src/index.ts` with your search parameters, then run `npm run start`
 ```bash
-git clone https://github.com/dezchai/WENEEDHOUSING.git
-cd WENEEDHOUSING
+git clone https://github.com/dezchai/we-need-housing.git
+cd we-need-housing
 npm i
 ```
 ```
