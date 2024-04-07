@@ -3,14 +3,14 @@ Having completed my first year at UBC, my friends and I faced a challenge as we 
 ## Description
 This command line app will refresh Facebook, Craigslist, Vansky, and Wesbrook Properties tens and thousands of times (millions if you want) daily with your search parameters. Once a new listing is found, a Discord message with all the listing details is sent to a Webhook:
 <p align="center" >
-  <img width="400" src="https://cdn.discordapp.com/attachments/1062207578161021040/1155646629160947712/image.png" />
+  <img width="400" src="https://i.imgur.com/bjbrCCP.png" />
 </p>
 <p align="center" >
 An example Webhook Embed message.
 </p>
 Since we received push notifications the second a new listing was posted, we could quickly contact the person to schedule a viewing. Faster than anyone else could. And if you're curious, this is what the terminal looks like when running
 <p align="center">
-  <img src="https://cdn.discordapp.com/attachments/827619107359817728/1155657451664851005/2023-09-24_15_53_27-Window.png"/>
+  <img src="https://i.imgur.com/HLJ10qU.png"/>
 </p>
 
 ## Installation and Usage
